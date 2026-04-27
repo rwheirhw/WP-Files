@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Application Tracker Dashboard</title>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://unpkg.com/vue-router@4"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: #f4f6f9;
+      font-family: Inter, system-ui, sans-serif;
+    }
+
+    .layout {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 1.5rem 1rem;
+    }
+
+    .sidebar h4 {
+      font-size: 1.1rem;
+      margin-bottom: 2rem;
+    }
+
+    .nav-link {
+      color: #cbd5f5;
+      margin-bottom: 0.5rem;
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+    }
+
+    .nav-link.router-link-active {
+      background: #334155;
+      color: #fff;
+    }
+
+    .main {
+      flex: 1;
+      padding: 2rem;
+    }
+
+    .card-clean {
+      border: none;
+      border-radius: 12px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    }
+
+    .job-item {
+      border-bottom: 1px solid #eee;
+      padding: 0.75rem 0;
+    }
+
+    .job-item:last-child {
+      border-bottom: none;
+    }
+
+    .applied {
+      text-decoration: line-through;
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+
+<div id="app" class="layout">
+  <div class="sidebar">
+    <h4>Tracker</h4>
+    <router-link to="/" class="nav-link d-block">Dashboard</router-link>
+    <router-link to="/applications" class="nav-link d-block">Applications</router-link>
+  </div>
+
+  <div class="main">
+    <router-view></router-view>
+  </div>
+</div>
+
+<script>
+const Dashboard = {
+  template: `
+    <div>
+      <h3 class="mb-4">Overview</h3>
+      <div class="row g-3">
+        <div class="col-md-4">
+          <div class="card card-clean p-3">
+            <h6>Total</h6>
+            <h4>{{ targets.length }}</h4>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card card-clean p-3">
+            <h6>Applied</h6>
+            <h4>{{ applied }}</h4>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card card-clean p-3">
+            <h6>Pending</h6>
+            <h4>{{ pending }}</h4>
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+  computed: {
+    targets() { return this.$root.targets },
+    applied() { return this.targets.filter(t => t.applied).length },
+    pending() { return this.targets.filter(t => !t.applied).length }
+  }
+};
+
+const Applications = {
+  template: `
+    <div>
+      <h3 class="mb-3">Applications</h3>
+
+      <div class="input-group mb-3">
+        <input v-model="$root.newTarget" class="form-control" placeholder="Company / Role" @keyup.enter="add">
+        <button class="btn btn-dark" @click="add">Add</button>
+      </div>
+
+      <div class="card card-clean p-3">
+        <div v-for="t in $root.targets" :key="t.id" class="job-item d-flex justify-content-between">
+          <div>
+            <input type="checkbox" v-model="t.applied" @change="$root.toggle(t)">
+            <span :class="{applied: t.applied}" class="ms-2">{{ t.name }}</span>
+
+            <input v-if="t.applied" type="url" class="form-control form-control-sm mt-2" placeholder="Application link" v-model="t.link" @input="$root.save()">
+          </div>
+
+          <button class="btn btn-sm btn-outline-danger" @click="$root.remove(t.id)">X</button>
+        </div>
+      </div>
+    </div>
+  `,
+  methods: {
+    add() {
+      const name = this.$root.newTarget.trim();
+      if (!name) return;
+
+      this.$root.targets.unshift({
+        id: Date.now(),
+        name,
+        applied: false,
+        link: ""
+      });
+
+      this.$root.newTarget = "";
+      this.$root.save();
+    }
+  }
+};
+
+const routes = [
+  { path: '/', component: Dashboard },
+  { path: '/applications', component: Applications }
+];
+
+const router = VueRouter.createRouter({
+  history: VueRouter.createWebHashHistory(),
+  routes
+});
+
+Vue.createApp({
+  data() {
+    return {
+      newTarget: "",
+      targets: JSON.parse(localStorage.getItem("targets")) || []
+    }
+  },
+  methods: {
+    save() {
+      localStorage.setItem("targets", JSON.stringify(this.targets));
+    },
+    remove(id) {
+      this.targets = this.targets.filter(t => t.id !== id);
+      this.save();
+    },
+    toggle(t) {
+      if (!t.applied) t.link = "";
+      this.save();
+    }
+  }
+}).use(router).mount('#app');
+</script>
+
+</body>
+</html>

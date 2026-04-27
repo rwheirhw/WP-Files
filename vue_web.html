@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Application Tracker</title>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: linear-gradient(135deg, #eef2f7, #f8fafc);
+      min-height: 100vh;
+      font-family: Inter, system-ui, sans-serif;
+    }
+
+    .tracker-card {
+      border: none;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+
+    .tracker-header {
+      background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+      color: white;
+      padding: 1.5rem;
+    }
+
+    .stat-chip {
+      font-size: 0.9rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 999px;
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #e2e8f0;
+    }
+
+    .job-item {
+      border: 1px solid #eef2f7;
+      border-radius: 12px;
+      margin-bottom: 0.75rem;
+      transition: all 0.2s ease;
+    }
+
+    .job-item:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transform: translateY(-1px);
+    }
+
+    .job-title {
+      font-weight: 500;
+      color: #1e293b;
+    }
+
+    .applied {
+      text-decoration: line-through;
+      color: #64748b;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #64748b;
+      padding: 2rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="container py-5" style="max-width: 760px;">
+    <div class="card tracker-card">
+      <div class="tracker-header">
+        <h1 class="h3 mb-1">Job/Internship Tracker</h1>
+        <p class="mb-0 opacity-65">Track your dream opportunities</p>
+      </div>
+
+      <div class="card-body p-6">
+        <div class="d-flex gap-3 flex-wrap mb-5">
+          <span class="stat-chip">Total: {{ targets.length }}</span>
+          <span class="stat-chip">Applied: {{ appliedCount }}</span>
+          <span class="stat-chip">Pending: {{ pendingCount }}</span>
+        </div>
+
+        <div class="input-group mb-4">
+          <input
+            type="text"
+            class="form-control"
+            placeholder="Enter company/role target"
+            v-model="newTarget"
+            @keyup.enter="addTarget"
+          >
+          <button class="btn btn-primary px-4" @click="addTarget">Add Target🎯</button>
+        </div>
+
+        <div class="d-flex gap-4 mb-5">
+          <button class="btn btn-sm" :class="filter==='all' ? 'btn-primary' : 'btn-outline-primary'" @click="filter='all'">All</button>
+          <button class="btn btn-sm" :class="filter==='pending' ? 'btn-primary' : 'btn-outline-primary'" @click="filter='pending'">Pending</button>
+          <button class="btn btn-sm" :class="filter==='applied' ? 'btn-primary' : 'btn-outline-primary'" @click="filter='applied'">Applied</button>
+        </div>
+
+        <div v-if="filteredTargets.length">
+          <div
+            v-for="(target, index) in filteredTargets"
+            :key="target.id"
+            class="job-item p-3 d-flex justify-content-between align-items-center"
+          >
+            <div class="d-flex align-items-center gap-3">
+              <input type="checkbox" class="form-check-input" v-model="target.applied" @change="handleAppliedToggle(target)">
+              <div>
+                <div class="job-title" :class="{ applied: target.applied }">
+                  {{ target.name }}
+                </div>
+                <small class="text-muted d-block">Added on {{ target.date }}</small>
+                <input
+                  v-if="target.applied"
+                  type="url"
+                  class="form-control form-control-sm mt-2"
+                  placeholder="Paste application link"
+                  v-model="target.link"
+                  @input="saveTargets"
+                >
+              </div>
+            </div>
+
+            <button class="btn btn-sm btn-outline-danger" @click="removeTarget(target.id)">
+              Remove
+            </button>
+          </div>
+        </div>
+
+        <div v-else class="empty-state">
+          No targets found. Add your first company
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp } = Vue;
+
+    createApp({
+      data() {
+        return {
+          newTarget: "",
+          filter: "all",
+          targets: JSON.parse(localStorage.getItem("jobTargets")) || []
+        };
+      },
+      computed: {
+        appliedCount() {
+          return this.targets.filter(t => t.applied).length;
+        },
+        pendingCount() {
+          return this.targets.filter(t => !t.applied).length;
+        },
+        filteredTargets() {
+          if (this.filter === "applied") {
+            return this.targets.filter(t => t.applied);
+          }
+          if (this.filter === "pending") {
+            return this.targets.filter(t => !t.applied);
+          }
+          return this.targets;
+        }
+      },
+      methods: {
+        addTarget() {
+          const name = this.newTarget.trim();
+          if (!name) return;
+
+          this.targets.unshift({
+            id: Date.now(),
+            name,
+            applied: false,
+            date: new Date().toLocaleDateString(),
+            link: ""
+          });
+
+          this.newTarget = "";
+          this.saveTargets();
+        },
+        removeTarget(id) {
+          this.targets = this.targets.filter(t => t.id !== id);
+          this.saveTargets();
+        },
+        handleAppliedToggle(target) {
+          if (!target.applied) {
+            target.link = "";
+          }
+          this.saveTargets();
+        },
+        saveTargets() {
+          localStorage.setItem("jobTargets", JSON.stringify(this.targets));
+        }
+      }
+    }).mount("#app");
+  </script>
+</body>
+</html>
