@@ -1,0 +1,55 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Vue App - Data Binding</title>
+  <script src="https://unpkg.com/vue@3"></script>
+</head>
+<body>
+
+<div id="app">
+  <h1>Vue.js Demo App</h1>
+
+  <!-- User Input -->
+  <label>Enter your name:</label>
+  <input v-model="name" placeholder="Type here">
+
+  <!-- Data Binding Output -->
+  <p>Hello, {{ name }} </p>
+
+  <!-- Button Click -->
+  <button v-on:click="increment">Click Me</button>
+  <p>You clicked {{ count }} times</p>
+
+  <!-- Conditional Rendering -->
+  <p v-if="count > 5"> You are active!</p>
+
+  <!-- List Rendering -->
+  <h3>Your Tasks:</h3>
+  <ul>
+    <li v-for="task in tasks">{{ task }}</li>
+  </ul>
+
+</div>
+
+<script>
+const app = Vue.createApp({
+  data() {
+    return {
+      name: '',
+      count: 0,
+      tasks: ["Learn Vue", "Build App", "Practice Daily"]
+    }
+  },
+  methods: {
+    increment() {
+      this.count++;
+    }
+  }
+});
+
+app.mount('#app');
+</script>
+
+</body>
+</html>
